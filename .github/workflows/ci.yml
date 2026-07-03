@@ -15,9 +15,9 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: 8.0.x
-      - name: Restore
+      - name: Restore backend
         run: dotnet restore ./controle-gastos/backend/ControleGastosAPI
-      - name: Build
+      - name: Build backend
         run: dotnet build ./controle-gastos/backend/ControleGastosAPI --no-restore --configuration Release
 
   build-frontend:
@@ -28,11 +28,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: 'npm'
-          cache-dependency-path: './controle-gastos/frontend/package-lock.json'
-      - name: Install dependencies
+      - name: Install frontend dependencies
         run: npm ci
         working-directory: ./controle-gastos/frontend
-      - name: Build
+      - name: Build frontend
         run: npm run build
         working-directory: ./controle-gastos/frontend
