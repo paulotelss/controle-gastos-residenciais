@@ -7,5 +7,5 @@ public class Transacao
     public decimal Valor { get; set; }
     public string Tipo { get; set; } = string.Empty;
     public int PessoaId { get; set; }
-    public Pessoa Pessoa { get; set; } = null!;
+    public Pessoa? Pessoa { get; set; }
 }
