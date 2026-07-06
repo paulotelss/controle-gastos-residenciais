@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using ControleGastosAPI.Data;
-using System.Text.Json;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,18 +7,34 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// Controllers com configuração para evitar ciclos de referência
+// Controllers
 builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.Preserve;
-        options.JsonSerializerOptions.MaxDepth = 64; // aumenta profundidade máxima
+        options.JsonSerializerOptions.MaxDepth = 64;
     });
 
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
+// CORS (permite qualquer origem, método e cabeçalho)
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("AllowAll",
+        policy =>
+        {
+            policy.AllowAnyOrigin()
+                  .AllowAnyMethod()
+                  .AllowAnyHeader();
+        });
+});
+
 var app = builder.Build();
+
+// Use CORS
+app.UseCors("AllowAll");
 
 if (app.Environment.IsDevelopment())
 {
