@@ -3,18 +3,39 @@ import { transacaoService } from '../../services/transacaoService';
 import { pessoaService } from '../../services/pessoaService';
 import type { Transacao, Pessoa } from '../../types';
 
+/**
+ * Componente principal para gerenciamento de transações (receitas e despesas).
+ * - Lista todas as transações cadastradas
+ * - Permite criar novas transações (via modal) com validação de idade
+ * - Aplica regra de negócio: menores de 18 anos só podem cadastrar despesas
+ */
 export function ListaTransacoes() {
+  // Estado: lista de transações carregadas do backend
   const [transacoes, setTransacoes] = useState<Transacao[]>([]);
+  // Estado: lista de pessoas para preencher o dropdown no modal
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
+  // Estado: indicador de carregamento
   const [loading, setLoading] = useState(true);
+  // Estado: mensagem de erro (se houver)
   const [error, setError] = useState<string | null>(null);
+  // Estado: controla a visibilidade do modal de criação
   const [showModal, setShowModal] = useState(false);
+  // Estado: descrição digitada no formulário
   const [descricao, setDescricao] = useState('');
+  // Estado: valor digitado no formulário
   const [valor, setValor] = useState('');
+  // Estado: tipo da transação ('Receita' ou 'Despesa')
   const [tipo, setTipo] = useState('Receita');
+  // Estado: ID da pessoa selecionada no dropdown
   const [pessoaId, setPessoaId] = useState('');
+  // Estado: idade da pessoa selecionada (usada para validação visual)
   const [selectedPessoaIdade, setSelectedPessoaIdade] = useState<number | null>(null);
 
+  /**
+   * Carrega os dados iniciais: lista de transações e lista de pessoas.
+   * Usa Promise.all para fazer ambas as requisições em paralelo.
+   * Filtra transações inválidas (sem id ou descrição) para evitar erros de renderização.
+   */
   const carregarDados = async () => {
     try {
       setLoading(true);
@@ -37,20 +58,33 @@ export function ListaTransacoes() {
     }
   };
 
+  // Executa o carregamento assim que o componente é montado
   useEffect(() => {
     carregarDados();
   }, []);
 
+  /**
+   * Manipula a mudança de pessoa no dropdown do modal.
+   * Ao selecionar uma pessoa, verifica se ela é menor de idade.
+   * Se for menor de 18, bloqueia o campo "Tipo" para "Despesa" automaticamente.
+   */
   const handlePessoaChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const id = e.target.value;
     setPessoaId(id);
     const pessoa = pessoas.find(p => p.id === parseInt(id));
     setSelectedPessoaIdade(pessoa ? pessoa.idade : null);
+    // REGRA DE NEGÓCIO: se menor de 18, força o tipo para "Despesa"
     if (pessoa && pessoa.idade < 18) {
       setTipo('Despesa');
     }
   };
 
+  /**
+   * Envia o formulário de criação de uma nova transação.
+   * Valida os dados, chama o serviço de criação e, em caso de sucesso,
+   * recarrega a lista e fecha o modal.
+   * O backend também aplica a validação de idade, garantindo consistência.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -60,12 +94,14 @@ export function ListaTransacoes() {
         tipo,
         pessoaId: parseInt(pessoaId),
       });
+      // Limpa os campos do formulário e fecha o modal
       setDescricao('');
       setValor('');
       setTipo('Receita');
       setPessoaId('');
       setSelectedPessoaIdade(null);
       setShowModal(false);
+      // Recarrega a lista para mostrar a nova transação
       await carregarDados();
     } catch (err) {
       alert('Erro ao criar transação. Verifique os dados.');
@@ -73,11 +109,15 @@ export function ListaTransacoes() {
     }
   };
 
+  // Enquanto carrega, exibe um indicador visual
   if (loading) return <div className="text-center py-8">Carregando...</div>;
+
+  // Em caso de erro, exibe a mensagem de erro
   if (error) return <div className="text-red-600 text-center py-8">{error}</div>;
 
   return (
     <div>
+      {/* Cabeçalho com título e botão para abrir o modal de criação */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Transações</h2>
         <button
@@ -88,6 +128,7 @@ export function ListaTransacoes() {
         </button>
       </div>
 
+      {/* Tabela com a listagem de transações */}
       <div className="bg-white rounded shadow overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -135,12 +176,13 @@ export function ListaTransacoes() {
         </table>
       </div>
 
-      {/* Modal - mesmo código anterior */}
+      {/* Modal para criar nova transação */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-96">
             <h3 className="text-lg font-semibold mb-4">Nova Transação</h3>
             <form onSubmit={handleSubmit}>
+              {/* Campo Descrição */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Descrição</label>
                 <input
@@ -151,6 +193,7 @@ export function ListaTransacoes() {
                   required
                 />
               </div>
+              {/* Campo Valor */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Valor (R$)</label>
                 <input
@@ -162,6 +205,7 @@ export function ListaTransacoes() {
                   required
                 />
               </div>
+              {/* Campo Pessoa (dropdown) */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Pessoa</label>
                 <select
@@ -177,12 +221,14 @@ export function ListaTransacoes() {
                     </option>
                   ))}
                 </select>
+                {/* Exibe aviso se a pessoa selecionada for menor de idade */}
                 {selectedPessoaIdade !== null && selectedPessoaIdade < 18 && (
                   <p className="mt-1 text-sm text-orange-600">
                     ⚠️ Menor de idade: apenas despesas são permitidas.
                   </p>
                 )}
               </div>
+              {/* Campo Tipo (com bloqueio para menores de idade) */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
                 <select
@@ -194,10 +240,12 @@ export function ListaTransacoes() {
                   <option value="Receita">Receita</option>
                   <option value="Despesa">Despesa</option>
                 </select>
+                {/* Mensagem adicional de bloqueio */}
                 {selectedPessoaIdade !== null && selectedPessoaIdade < 18 && (
                   <p className="mt-1 text-sm text-gray-500">Campo bloqueado para menores de idade.</p>
                 )}
               </div>
+              {/* Botões de ação */}
               <div className="flex justify-end gap-2">
                 <button
                   type="button"

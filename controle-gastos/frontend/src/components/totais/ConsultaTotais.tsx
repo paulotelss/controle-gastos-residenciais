@@ -2,16 +2,33 @@ import { useEffect, useState } from 'react';
 import { totaisService } from '../../services/totaisService';
 import type { TotaisResponse, Transacao, TotalPorPessoa } from '../../types';
 
+/**
+ * Componente principal para consulta de totais financeiros.
+ * - Exibe o resumo (receitas, despesas, saldo) de cada pessoa.
+ * - Exibe totais gerais (soma de todas as pessoas).
+ * - Permite detalhar as transações de uma pessoa específica via modal.
+ * 
+ * Esta tela atende ao requisito de "Consulta de totais" do desafio,
+ * com um extra: o detalhamento individual por pessoa.
+ */
 export function ConsultaTotais() {
+  // Estado: dados completos da consulta (totais por pessoa + totais gerais)
   const [dados, setDados] = useState<TotaisResponse | null>(null);
+  // Estado: indicador de carregamento da consulta principal
   const [loading, setLoading] = useState(true);
+  // Estado: mensagem de erro (se houver) da consulta principal
   const [error, setError] = useState<string | null>(null);
 
+  // Estados para controlar o modal de detalhamento de transações por pessoa
   const [showModal, setShowModal] = useState(false);
   const [pessoaSelecionada, setPessoaSelecionada] = useState<TotalPorPessoa | null>(null);
   const [transacoesPessoa, setTransacoesPessoa] = useState<Transacao[]>([]);
   const [loadingTransacoes, setLoadingTransacoes] = useState(false);
 
+  /**
+   * Carrega os totais do backend usando o totaisService.
+   * Atualiza os estados de loading, dados e erro.
+   */
   const carregarTotais = async () => {
     try {
       setLoading(true);
@@ -26,11 +43,20 @@ export function ConsultaTotais() {
     }
   };
 
+  // Executa o carregamento assim que o componente é montado
   useEffect(() => {
     carregarTotais();
   }, []);
 
-  // Função para extrair todas as transações de forma robusta, usando Map para unicidade
+  /**
+   * Função recursiva para extrair todas as transações de um objeto JSON,
+   * garantindo unicidade por ID usando um Map.
+   * 
+   * Isso é necessário porque o backend utiliza ReferenceHandler.Preserve,
+   * que retorna estruturas com $id, $values e $ref (referências circulares).
+   * A função percorre todo o objeto, extrai cada transação válida e
+   * evita duplicatas usando o ID como chave do Map.
+   */
   const extrairTodasTransacoes = (data: any): Transacao[] => {
     const map = new Map<number, Transacao>();
 
@@ -68,6 +94,13 @@ export function ConsultaTotais() {
     return Array.from(map.values());
   };
 
+  /**
+   * Abre o modal de detalhamento para uma pessoa específica.
+   * - Faz uma requisição direta ao backend (fetch) para obter todas as transações.
+   * - Extrai todas as transações usando a função recursiva.
+   * - Filtra apenas as transações da pessoa selecionada.
+   * - Atualiza o estado transacoesPessoa e exibe o modal.
+   */
   const abrirDetalhes = async (pessoa: TotalPorPessoa) => {
     setPessoaSelecionada(pessoa);
     setShowModal(true);
@@ -91,16 +124,23 @@ export function ConsultaTotais() {
     }
   };
 
+  // Enquanto carrega, exibe um indicador visual
   if (loading) return <div className="text-center py-8">Carregando...</div>;
+
+  // Em caso de erro, exibe a mensagem de erro
   if (error) return <div className="text-red-600 text-center py-8">{error}</div>;
+
+  // Se não houver dados ou lista vazia, exibe mensagem informativa
   if (!dados || dados.totaisPorPessoa.length === 0) {
     return <div className="text-center py-8 text-gray-500">Nenhuma pessoa cadastrada para exibir totais.</div>;
   }
 
   return (
     <div>
+      {/* Título da página */}
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Consulta de Totais</h2>
 
+      {/* Tabela com totais por pessoa */}
       <div className="bg-white rounded shadow overflow-hidden mb-6">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -130,6 +170,7 @@ export function ConsultaTotais() {
                   R$ {pessoa.saldo.toFixed(2)}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
+                  {/* Botão para abrir o modal de detalhamento */}
                   <button
                     onClick={() => abrirDetalhes(pessoa)}
                     className="text-blue-600 hover:text-blue-900 transition"
@@ -143,6 +184,7 @@ export function ConsultaTotais() {
         </table>
       </div>
 
+      {/* Totais gerais (consolidado de todas as pessoas) */}
       <div className="bg-blue-50 border border-blue-200 rounded p-6">
         <h3 className="text-lg font-semibold text-gray-800 mb-3">Totais Gerais</h3>
         <div className="grid grid-cols-3 gap-4">
@@ -169,9 +211,11 @@ export function ConsultaTotais() {
         </div>
       </div>
 
+      {/* Modal de detalhamento das transações da pessoa selecionada */}
       {showModal && pessoaSelecionada && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            {/* Cabeçalho do modal */}
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-lg font-semibold text-gray-800">
                 Transações de {pessoaSelecionada.nome}
@@ -184,6 +228,7 @@ export function ConsultaTotais() {
               </button>
             </div>
 
+            {/* Conteúdo do modal: lista de transações da pessoa */}
             {loadingTransacoes ? (
               <div className="text-center py-4">Carregando transações...</div>
             ) : transacoesPessoa.length === 0 ? (

@@ -2,14 +2,31 @@ import { useState, useEffect } from 'react';
 import { pessoaService } from '../../services/pessoaService';
 import type { Pessoa } from '../../types';
 
+/**
+ * Componente principal para gerenciamento de pessoas.
+ * - Lista todas as pessoas cadastradas
+ * - Permite criar novas pessoas (via modal)
+ * - Permite deletar pessoas (com confirmação e aviso sobre cascade delete)
+ */
 export function ListaPessoas() {
+  // Estado: lista de pessoas carregadas do backend
   const [pessoas, setPessoas] = useState<Pessoa[]>([]);
+  // Estado: indicador de carregamento
   const [loading, setLoading] = useState(true);
+  // Estado: mensagem de erro (se houver)
   const [error, setError] = useState<string | null>(null);
+  // Estado: controla a visibilidade do modal de criação
   const [showModal, setShowModal] = useState(false);
+  // Estado: nome digitado no formulário
   const [nome, setNome] = useState('');
+  // Estado: idade digitada no formulário
   const [idade, setIdade] = useState('');
 
+  /**
+   * Função que carrega a lista de pessoas do backend.
+   * Usa o pessoaService.listar() e trata possíveis erros.
+   * Atualiza os estados de loading, dados e erro.
+   */
   const carregarPessoas = async () => {
     try {
       setLoading(true);
@@ -24,10 +41,16 @@ export function ListaPessoas() {
     }
   };
 
+  // Executa o carregamento assim que o componente é montado
   useEffect(() => {
     carregarPessoas();
   }, []);
 
+  /**
+   * Envia o formulário de criação de uma nova pessoa.
+   * Valida os dados, chama o serviço de criação e, em caso de sucesso,
+   * recarrega a lista e fecha o modal.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
@@ -35,9 +58,12 @@ export function ListaPessoas() {
         nome,
         idade: parseInt(idade),
       });
+      // Limpa os campos do formulário
       setNome('');
       setIdade('');
+      // Fecha o modal
       setShowModal(false);
+      // Recarrega a lista para mostrar a nova pessoa
       await carregarPessoas();
     } catch (err) {
       alert('Erro ao criar pessoa. Verifique os dados.');
@@ -45,12 +71,18 @@ export function ListaPessoas() {
     }
   };
 
+  /**
+   * Deleta uma pessoa pelo ID.
+   * Exibe uma confirmação antes de prosseguir, lembrando que o delete em cascata
+   * removerá todas as transações associadas à pessoa.
+   */
   const handleDelete = async (id: number) => {
     if (!confirm('Tem certeza que deseja excluir esta pessoa? Todas as transações associadas também serão removidas.')) {
       return;
     }
     try {
       await pessoaService.deletar(id);
+      // Recarrega a lista após a exclusão
       await carregarPessoas();
     } catch (err) {
       alert('Erro ao deletar pessoa.');
@@ -58,11 +90,15 @@ export function ListaPessoas() {
     }
   };
 
+  // Enquanto carrega, exibe um indicador visual
   if (loading) return <div className="text-center py-8">Carregando...</div>;
+
+  // Em caso de erro, exibe a mensagem de erro
   if (error) return <div className="text-red-600 text-center py-8">{error}</div>;
 
   return (
     <div>
+      {/* Cabeçalho com título e botão para abrir o modal de criação */}
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-2xl font-bold text-gray-800">Pessoas</h2>
         <button
@@ -73,6 +109,7 @@ export function ListaPessoas() {
         </button>
       </div>
 
+      {/* Tabela com a listagem de pessoas */}
       <div className="bg-white rounded shadow overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
           <thead className="bg-gray-50">
@@ -111,11 +148,13 @@ export function ListaPessoas() {
         </table>
       </div>
 
+      {/* Modal para criar nova pessoa */}
       {showModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg shadow-xl p-6 w-96">
             <h3 className="text-lg font-semibold mb-4">Nova Pessoa</h3>
             <form onSubmit={handleSubmit}>
+              {/* Campo Nome */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
                 <input
@@ -126,6 +165,7 @@ export function ListaPessoas() {
                   required
                 />
               </div>
+              {/* Campo Idade */}
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Idade</label>
                 <input
@@ -136,6 +176,7 @@ export function ListaPessoas() {
                   required
                 />
               </div>
+              {/* Botões de ação */}
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
